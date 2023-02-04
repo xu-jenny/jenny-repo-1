@@ -28,7 +28,7 @@ def negate_result(result, total_num_of_rows):
     negated_result = set()
     for i in range(total_num_of_rows):
         if i not in result:
-            negated_result.append(i)
+            negated_result.add(i)
     return negated_result
 
 def combine_results(result1, result2, operation):
@@ -47,8 +47,12 @@ def combine_results(result1, result2, operation):
     return combined_result
 
 def process_input(input, operation_stack, df):
-    if len(input) < 1:
-        return
+    print(operation_stack)
+    if not input: # processed to end of string, return final result on the stack
+        selected_rows = list(operation_stack.pop())
+        # print(df.loc[df.index[selected_rows]])
+        return df.loc[df.index[selected_rows]]
+        
     first_char = input[0]
     if first_char == 'A' and input[0:4] == 'AND(':
         operation_stack.append('AND')
@@ -63,8 +67,8 @@ def process_input(input, operation_stack, df):
         right_paren_index = int(input.index(')'))
         result = process_match_operation(input[6:right_paren_index], df)
         operation_stack.append(result)
-        process_input(input[right_paren_index+2:].strip(), operation_stack, df)
-    elif first_char == ',' and input[0:1] == ', ':
+        process_input(input[right_paren_index+1:], operation_stack, df)
+    elif first_char == ',' and input[0:2] == ', ':
         process_input(input[2:], operation_stack, df) 
     elif first_char == ')': # This does NOT include the ) for MATCH(...)
         print(operation_stack)
@@ -76,13 +80,16 @@ def process_input(input, operation_stack, df):
             operation_stack.append(combined_result)
         else:
             if result2 == 'NOT':
-                negated_result = negate_result(result, len(df))
+                negated_result = negate_result(result1, len(df))
                 operation_stack.append(negated_result)
             else:
                 raise Exception(f'Unrecognized operation {operation}')
+        process_input(input[1:], operation_stack, df)
     else:
         raise Exception(f'Cannot parse input {input}')
 
 # print(extract_match_expr(df, 'MATCH("Rank", "2")'))
 df = pd.read_csv("data.csv")
-process_input('AND(MATCH("RANK", "1"), MATCH("Days in Top 10", "0"))', [], df)
+query = 'AND(OR(MATCH("Rank", "1"), MATCH("Rank", "3")), NOT(MATCH("Rank", "1")))'
+operation_stack = []
+print(process_input(query, operation_stack, df))

@@ -13,7 +13,6 @@ def match(df, col, val):
 
 def process_match_operation(input, df):
     try:
-        # print(f'match expression input [{input}]')
         input_expression = input
         input_expression = input_expression.replace('"','')
         comma_index = int(input_expression.index(','))
@@ -34,7 +33,6 @@ def negate_result(result, total_num_of_rows):
     return negated_result
 
 def combine_results(result1, result2, operation):
-    # print(f'Combine results, result1 is {result1}, result2 is {result2}, operation {operation}')
     combined_result = set()
     if operation == 'AND':
         for val in result1:
@@ -47,13 +45,11 @@ def combine_results(result1, result2, operation):
             combined_result.add(val)
     else:
         raise Exception(f'Unrecognized operation {operation}')
-    # print(combined_result)
     return combined_result
 
 # input is a valid sequence that starts with AND(...), OR(...), NOT(...), MATCH(...), comma(,) or ) 
 # operation_stack is either a set of matched rows, or strings 'AND', 'OR', 'NOT'
 def process_input(input, operation_stack, df):
-    # print(operation_stack)
     if not input: # processed to end of string, return final result on the stack
         selected_rows = list(operation_stack.pop())
         print(df.loc[df.index[selected_rows]])
@@ -69,6 +65,9 @@ def process_input(input, operation_stack, df):
     elif first_char == 'N' and input[0:4] == 'NOT(':
         operation_stack.append('NOT')
         process_input(input[4:], operation_stack, df)
+    # Extra Credit #5: To suuport LT or GT operation, the idea is very similiar to MATCH. we'd need to check for 'LT(' and 'GT('
+    # then write the process_lt_operation and process_gt_operation similiar to how we wrote 'process_match_operation(...)'.
+    # The logic to extract column name and value will be similiar, except replace the last bit with something like set(df[df[col] >= val].index)
     elif first_char == 'M' and input[0:6] == 'MATCH(':
         right_paren_index = int(input.index(')'))
         result = process_match_operation(input[6:right_paren_index], df)
@@ -98,3 +97,6 @@ df = pd.read_csv('data.csv')
 query = 'AND(AND(OR(MATCH("Rank", "1"), MATCH("Rank", "3")), NOT(MATCH("Type", "Movie"))), MATCH("Days In Top 10", "11"))'
 # query = 'MATCH("Type", "TV Show")'
 process_input(query, [], df)
+
+# Extra credit #4: to speed up the input, the best way is to convert the query string directly to an aggregated query first, then perform the query once.
+# Rightnow we are processing each query individually then combining the results together, we have to generate a list on every compute. these intermediate lists and selections are unneccassry
